@@ -1,0 +1,23 @@
+services:
+  publisher:
+    image: andriiuni/events
+    platform: linux/arm64/v8
+    environment:
+      EVENT_ENDPOINT: http://gateway:3000/events
+    depends_on:
+      - gateway
+    networks:
+      - general
+
+  gateway:
+    build:
+      context: ./gateway
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+    networks:
+      - general
+
+networks:
+  general:
