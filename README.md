@@ -12,7 +12,7 @@ Author: Dmytro Rekechynskyi
      `qemu-system-aarch64` command
    * Run the command to support linux/arm64/v8 CPU architecture:
      ```sh
-     docker run --privileged --rm tonistiigi/binfmt --install linux/arm64/v8
+     docker run --privileged --rm tonistiigi/binfmt --install all
      ```
 3. Run this command to build and launch this ecosystem:
    ```sh

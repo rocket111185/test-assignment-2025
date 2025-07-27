@@ -1,21 +1,53 @@
 services:
-  publisher:
-    image: andriiuni/events
+  nats:
+    image: nats:linux
     platform: linux/arm64/v8
-    environment:
-      EVENT_ENDPOINT: http://gateway:3000/events
-    depends_on:
-      - gateway
+    command: -js
+    expose:
+      - "4222"
+      - "8222"
+    volumes:
+      - ./storage/jetstream:/tmp/nats/jetstream
     networks:
       - general
 
   gateway:
     build:
       context: ./gateway
-    ports:
-      - "3000:3000"
+    # deploy:
+    #   mode: replicated
+    #   replicas: 4
+    expose:
+      - "3000"
     environment:
-      PORT: 3000
+      PORT: "3000"
+      NATS_URL: "nats://nats:4222"
+    depends_on:
+      - nats
+    networks:
+      - general
+
+  fb-collector:
+    build:
+      context: ./fb-collector
+    expose:
+      - "4010"
+    environment:
+      PORT: "4010"
+      NATS_URL: "nats://nats:4222"
+    depends_on:
+      - nats
+      - gateway
+    networks:
+      - general
+
+  publisher:
+    image: andriiuni/events
+    platform: linux/arm64/v8
+    environment:
+      EVENT_ENDPOINT: "http://gateway:3000/events"
+    depends_on:
+      - fb-collector
     networks:
       - general
 
