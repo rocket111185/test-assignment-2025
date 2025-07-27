@@ -14,7 +14,9 @@ Author: Dmytro Rekechynskyi
      ```sh
      docker run --privileged --rm tonistiigi/binfmt --install all
      ```
-3. Run this command to build and launch this ecosystem:
+3. Remove `.gitkeep` files from both `storage/jetstream` and `storage/postgresql`
+   directories.
+4. Run this command to build and launch this ecosystem:
    ```sh
    docker compose up --build
    ```

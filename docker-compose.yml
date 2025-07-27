@@ -21,7 +21,7 @@ services:
       - "3000"
     environment:
       PORT: "3000"
-      NATS_URL: "nats://nats:4222"
+      NATS_URL: "${NATS_URL}"
     depends_on:
       - nats
     networks:
@@ -30,18 +30,52 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 10
+      start_period: 5s
+
+  postgres:
+    image: "postgres:${POSTGRES_VERSION}"
+    platform: linux/arm64/v8
+    user: postgres
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB}"
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./storage/postgresql:/var/lib/postgresql/data
+    networks:
+      - general
+    healthcheck:
+      test: "pg_isready -d ${POSTGRES_DB} -U ${POSTGRES_USER}"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
 
   fb-collector:
     build:
       context: ./fb-collector
-    expose:
-      - "4010"
     environment:
-      PORT: "4010"
-      NATS_URL: "nats://nats:4222"
+      NATS_URL: "${NATS_URL}"
     depends_on:
       gateway:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - general
+
+  ttk-collector:
+    build:
+      context: ./ttk-collector
+    environment:
+      NATS_URL: "${NATS_URL}"
+    depends_on:
+      gateway:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     networks:
       - general
@@ -53,6 +87,7 @@ services:
       EVENT_ENDPOINT: "http://gateway:3000/events"
     depends_on:
       - fb-collector
+      - ttk-collector
     networks:
       - general
 
