@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+  output = "./prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FunnelStage {
+  top
+  bottom
+}
+
+enum TiktokTopEventType {
+  video_view
+  like
+  share
+  comment
+}
+
+enum TiktokBottomEventType {
+  profile_visit
+  purchase
+  follow
+}
+
+enum DeviceType {
+  Android
+  iOS
+  Desktop
+}
+
+model TiktokUser {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  username   String
+  followers  Int
+
+  events     TiktokEvent[]
+}
+
+model TiktokEvent {
+  id            String   @id @default(uuid())
+  eventId       String   @unique
+  timestamp     DateTime
+  source        String   // Always "tiktok"
+  funnelStage   FunnelStage
+  eventType     String   // Can use string union validation at app level if combining enums
+
+  userId        String
+  user          TiktokUser @relation(fields: [userId], references: [id])
+
+  engagementId  String? @unique
+  engagement    TiktokEngagement? @relation(fields: [engagementId], references: [id])
+}
+
+model TiktokEngagement {
+  id                  String   @id @default(uuid())
+
+  // For Top
+  watchTime           Int?
+  percentageWatched   Float?
+  device              DeviceType?
+  country             String?
+  videoId             String?
+
+  // For Bottom
+  actionTime          DateTime?
+  profileId           String?
+  purchasedItem       String?
+  purchaseAmount      String?
+
+  event               TiktokEvent?
+}

@@ -2,9 +2,21 @@ import * as z from 'zod';
 
 const FunnelStageSchema = z.enum(['top', 'bottom']);
 
-const FacebookTopEventTypeSchema = z.enum(['ad.view', 'page.like', 'comment', 'video.view']);
-const FacebookBottomEventTypeSchema = z.enum(['ad.click', 'form.submission', 'checkout.complete']);
-const FacebookEventTypeSchema = z.union([FacebookTopEventTypeSchema, FacebookBottomEventTypeSchema]);
+const FacebookTopEventTypeSchema = z.enum([
+  'ad.view',
+  'page.like',
+  'comment',
+  'video.view',
+]);
+const FacebookBottomEventTypeSchema = z.enum([
+  'ad.click',
+  'form.submission',
+  'checkout.complete',
+]);
+const FacebookEventTypeSchema = z.union([
+  FacebookTopEventTypeSchema,
+  FacebookBottomEventTypeSchema,
+]);
 
 const FacebookUserLocationSchema = z.object({
   country: z.string(),

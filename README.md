@@ -10,12 +10,15 @@ Author: Dmytro Rekechynskyi
    proceed with these steps:
    * Make sure QEMU is installed with ARM emulation. You may check this via running
      `qemu-system-aarch64` command
+   * (For Linux) Make sure `binfmt_misc` kernel module is enabled. You may check it
+     via running `cat /proc/sys/fs/binfmt_misc/status` command, it should show
+     `enabled`. If it's not the case, run the `sudo modprobe binfmt_misc` command
+     and wait for around 5 minutes for this command to take effect.
    * Run the command to support linux/arm64/v8 CPU architecture:
      ```sh
      docker run --privileged --rm tonistiigi/binfmt --install all
      ```
-3. Remove `.gitkeep` files from both `storage/jetstream` and `storage/postgresql`
-   directories.
+3. Create an `.env` file with proper values. Example may be seen in `.development.env`
 4. Run this command to build and launch this ecosystem:
    ```sh
    docker compose up --build

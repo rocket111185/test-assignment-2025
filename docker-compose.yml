@@ -36,7 +36,6 @@ services:
   postgres:
     image: "postgres:${POSTGRES_VERSION}"
     platform: linux/arm64/v8
-    user: postgres
     environment:
       POSTGRES_USER: "${POSTGRES_USER}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
@@ -59,6 +58,7 @@ services:
       context: ./fb-collector
     environment:
       NATS_URL: "${NATS_URL}"
+      DATABASE_URL: "${DATABASE_URL}"
     depends_on:
       gateway:
         condition: service_healthy
@@ -72,6 +72,7 @@ services:
       context: ./ttk-collector
     environment:
       NATS_URL: "${NATS_URL}"
+      DATABASE_URL: "${DATABASE_URL}"
     depends_on:
       gateway:
         condition: service_healthy

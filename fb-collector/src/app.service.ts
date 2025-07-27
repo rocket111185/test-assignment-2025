@@ -1,15 +1,21 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { NatsConnection, StringCodec, connect, AckPolicy, Consumer } from 'nats';
+import {
+  NatsConnection,
+  StringCodec,
+  connect,
+  AckPolicy,
+  Consumer,
+} from 'nats';
 import { FacebookEventSchema, FacebookEvent } from './validator';
 
 @Injectable()
 export class AppService implements OnModuleInit, OnModuleDestroy {
   private connection: NatsConnection;
-  private consumer: Consumer
+  private consumer: Consumer;
 
   async initializeNats() {
     this.connection = await connect({
-      servers: process.env.NATS_URL
+      servers: process.env.NATS_URL,
     });
 
     const js = this.connection.jetstream();
@@ -20,7 +26,7 @@ export class AppService implements OnModuleInit, OnModuleDestroy {
     await jsm.consumers.add(STREAM_NAME, {
       durable_name: CONSUMER_NAME,
       filter_subject: 'facebook',
-      ack_policy: AckPolicy.Explicit
+      ack_policy: AckPolicy.Explicit,
     });
 
     this.consumer = await js.consumers.get(STREAM_NAME, CONSUMER_NAME);
@@ -38,9 +44,12 @@ export class AppService implements OnModuleInit, OnModuleDestroy {
 
         if (validated.success) {
           const data: FacebookEvent = validated.data;
-          console.log('Received an object, sourco:', data.source);
+          console.log('Received an object, source:', data.source);
         } else {
-          console.error('This data piece was malfunctioned, sourco:', decoded.source);
+          console.error(
+            'This data piece was malfunctioned, source:',
+            decoded.source,
+          );
         }
 
         msg.ack();
