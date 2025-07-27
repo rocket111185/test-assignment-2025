@@ -26,6 +26,11 @@ services:
       - nats
     networks:
       - general
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   fb-collector:
     build:
@@ -36,8 +41,8 @@ services:
       PORT: "4010"
       NATS_URL: "nats://nats:4222"
     depends_on:
-      - nats
-      - gateway
+      gateway:
+        condition: service_healthy
     networks:
       - general
 
