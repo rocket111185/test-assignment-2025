@@ -1,28 +1,22 @@
 generator client {
   provider = "prisma-client-js"
   output = "./prisma"
-  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["tiktok"]
 }
 
 enum FunnelStage {
   top
   bottom
-
-  @@schema("tiktok")
 }
 
-enum DeviceType {
+enum TiktokDeviceType {
   Android
   iOS
   Desktop
-
-  @@schema("tiktok")
 }
 
 model TiktokUser {
@@ -32,8 +26,6 @@ model TiktokUser {
   followers  Int
 
   events     TiktokEvent[]
-
-  @@schema("tiktok")
 }
 
 model TiktokEvent {
@@ -52,8 +44,6 @@ model TiktokEvent {
 
   engagementBottomId  String? @unique
   engagementBottom    TiktokEngagementBottom? @relation(fields: [engagementBottomId], references: [id])
-
-  @@schema("tiktok")
 }
 
 model TiktokEngagementTop {
@@ -61,13 +51,11 @@ model TiktokEngagementTop {
 
   watchTime           Int
   percentageWatched   Float
-  device              DeviceType
+  device              TiktokDeviceType
   country             String
   videoId             String
 
   event               TiktokEvent?
-
-  @@schema("tiktok")
 }
 
 model TiktokEngagementBottom {
@@ -79,6 +67,4 @@ model TiktokEngagementBottom {
   purchaseAmount      String?
 
   event               TiktokEvent?
-
-  @@schema("tiktok")
 }

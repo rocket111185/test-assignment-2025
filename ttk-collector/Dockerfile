@@ -8,6 +8,4 @@ COPY schema.prisma .
 RUN npm run prisma:generate
 
 COPY . .
-
-RUN chmod +x /app/entrypoint.sh
-ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["npm", "start"]

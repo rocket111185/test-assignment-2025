@@ -1,4 +1,5 @@
 FROM node:lts-alpine
+RUN apk add --no-cache curl
 WORKDIR /app
 
 COPY package*.json .
@@ -8,4 +9,6 @@ COPY schema.prisma .
 RUN npm run prisma:generate
 
 COPY . .
-CMD ["npm", "start"]
+
+RUN chmod +x /app/entrypoint.sh
+ENTRYPOINT ["/app/entrypoint.sh"]

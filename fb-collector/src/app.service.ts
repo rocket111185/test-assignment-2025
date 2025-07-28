@@ -140,6 +140,9 @@ export class AppService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
+    await this.prisma.$disconnect();
+    console.log('Disconnected from the database');
+
     await this.connection.drain();
     console.log('Disconnected from NATS JetStream');
   }
