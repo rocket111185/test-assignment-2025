@@ -37,6 +37,8 @@ const FacebookEngagementTopSchema = z.object({
   videoId: z.string().nullable(),
 });
 
+export type FacebookEngagementTop = z.infer<typeof FacebookEngagementTopSchema>;
+
 const FacebookEngagementBottomSchema = z.object({
   adId: z.string(),
   campaignId: z.string(),
@@ -45,6 +47,8 @@ const FacebookEngagementBottomSchema = z.object({
   browser: z.enum(['Chrome', 'Firefox', 'Safari']),
   purchaseAmount: z.string().nullable(),
 });
+
+export type FacebookEngagementBottom = z.infer<typeof FacebookEngagementBottomSchema>;
 
 const FacebookEngagementSchema = z.union([
   FacebookEngagementTopSchema,

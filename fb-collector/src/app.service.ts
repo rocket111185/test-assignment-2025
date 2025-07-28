@@ -6,12 +6,25 @@ import {
   AckPolicy,
   Consumer,
 } from 'nats';
-import { FacebookEventSchema, FacebookEvent } from './validator';
+import { PrismaClient, FacebookEvent as PrismaFacebookEvent } from '../prisma/client';
+import {
+  FacebookEventSchema,
+  FacebookEvent,
+  FacebookEngagementTop,
+  FacebookEngagementBottom,
+} from './validator';
+
+// We don't want to set ID explicitly
+// Besides that, it must be OK to specify time in string
+type DbFacebookEvent = Omit<PrismaFacebookEvent, 'id' | 'timestamp'> & {
+  timestamp: string
+};
 
 @Injectable()
 export class AppService implements OnModuleInit, OnModuleDestroy {
   private connection: NatsConnection;
   private consumer: Consumer;
+  private prisma: PrismaClient;
 
   async initializeNats() {
     this.connection = await connect({
@@ -30,10 +43,76 @@ export class AppService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.consumer = await js.consumers.get(STREAM_NAME, CONSUMER_NAME);
+    console.log('Connected to NATS stream');
+  }
+
+  async initializePrisma() {
+    this.prisma = new PrismaClient();
+    await this.prisma.$connect();
+    console.log('Connected to the database');
+  }
+
+  async processEvent(event: FacebookEvent) {
+    await this.prisma.$transaction(async (tx) => {
+      const { data, ...eventData } = event;
+      const { user, engagement } = data;
+
+      let userObject = await tx.facebookUser.findFirst({
+        where: {
+          userId: user.userId
+        }
+      });
+
+      if (!userObject) {
+        const { location, ...userInput } = user;
+
+        let userLocation = await tx.facebookUserLocation.findFirst({
+          where: location
+        });
+
+        if (!userLocation) {
+          userLocation = await tx.facebookUserLocation.create({
+            data: location
+          });
+        }
+
+        userObject = await tx.facebookUser.create({
+          data: {
+            ...userInput,
+            locationId: userLocation.id
+          }
+        });
+      }
+
+      const eventInput: DbFacebookEvent = {
+        ...eventData,
+        userId: userObject.id,
+        engagementTopId: null,
+        engagementBottomId: null
+      };
+
+      if (eventData.funnelStage === 'top') {
+        const engagementObject = await tx.facebookEngagementTop.create({
+          data: engagement as FacebookEngagementTop
+        });
+
+        eventInput.engagementTopId = engagementObject.id;
+      } else if (eventData.funnelStage === 'bottom') {
+        const engagementObject = await tx.facebookEngagementBottom.create({
+          data: engagement as FacebookEngagementBottom
+        });
+
+        eventInput.engagementBottomId = engagementObject.id;
+      }
+
+      await tx.facebookEvent.create({ data: eventInput });
+    });
   }
 
   async onModuleInit() {
     await this.initializeNats();
+    await this.initializePrisma();
+
     const codec = StringCodec();
     const messages = await this.consumer.consume();
 
@@ -42,9 +121,8 @@ export class AppService implements OnModuleInit, OnModuleDestroy {
         const decoded = JSON.parse(codec.decode(msg.data));
         const validated = await FacebookEventSchema.safeParseAsync(decoded);
 
-        if (validated.success) {
-          const data: FacebookEvent = validated.data;
-          console.log('Received an object, source:', data.source);
+        if (validated.success && validated.data) {
+          await this.processEvent(validated.data);
         } else {
           console.error(
             'This data piece was malfunctioned, source:',

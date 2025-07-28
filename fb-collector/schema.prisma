@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+  output = "./prisma"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["facebook"]
+}
+
+enum FunnelStage {
+  top
+  bottom
+
+  @@schema("facebook")
+}
+
+enum Referrer {
+  newsfeed
+  marketplace
+  groups
+
+  @@schema("facebook")
+}
+
+enum ClickPosition {
+  top_left
+  bottom_right
+  center
+
+  @@schema("facebook")
+}
+
+enum DeviceType {
+  mobile
+  desktop
+
+  @@schema("facebook")
+}
+
+enum BrowserType {
+  Chrome
+  Firefox
+  Safari
+
+  @@schema("facebook")
+}
+
+model FacebookUserLocation {
+  id      String @id @default(uuid())
+  country String
+  city    String
+
+  users   FacebookUser[]
+
+  @@schema("facebook")
+}
+
+model FacebookUser {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  name       String
+  age        Int
+
+  // Had to use String for gender instead of enum due to
+  // inability to use "non-binary" as enum value
+  gender     String
+
+  locationId String
+  location   FacebookUserLocation @relation(fields: [locationId], references: [id])
+
+  events     FacebookEvent[]
+
+  @@schema("facebook")
+}
+
+model FacebookEvent {
+  id            String   @id @default(uuid())
+  eventId       String   @unique
+  timestamp     DateTime
+  source        String
+  funnelStage   FunnelStage
+  eventType     String
+
+  userId        String
+  user          FacebookUser @relation(fields: [userId], references: [id])
+
+  engagementTopId  String? @unique
+  engagementTop    FacebookEngagementTop? @relation(fields: [engagementTopId], references: [id])
+
+  engagementBottomId  String? @unique
+  engagementBottom    FacebookEngagementBottom? @relation(fields: [engagementBottomId], references: [id])
+
+  @@schema("facebook")
+}
+
+model FacebookEngagementTop {
+  id                  String   @id @default(uuid())
+
+  actionTime          DateTime
+  referrer            Referrer
+  videoId             String?
+
+  event               FacebookEvent?
+
+  @@schema("facebook")
+}
+
+model FacebookEngagementBottom {
+  id                  String   @id @default(uuid())
+
+  adId                String
+  campaignId          String
+  clickPosition       ClickPosition
+  device              DeviceType
+  browser             BrowserType
+  purchaseAmount      String?
+
+  event               FacebookEvent?
+
+  @@schema("facebook")
+}

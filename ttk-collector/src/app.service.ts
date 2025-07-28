@@ -37,6 +37,7 @@ export class AppService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.consumer = await js.consumers.get(STREAM_NAME, CONSUMER_NAME);
+    console.log('Connected to NATS stream');
   }
 
   async initializePrisma() {
@@ -49,6 +50,7 @@ export class AppService implements OnModuleInit, OnModuleDestroy {
     await this.prisma.$transaction(async (tx) => {
       const { data, ...eventData } = event;
       const { user, engagement } = data;
+
       let userObject = await tx.tiktokUser.findFirst({
         where: {
           userId: user.userId

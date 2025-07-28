@@ -1,35 +1,28 @@
 generator client {
   provider = "prisma-client-js"
   output = "./prisma"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["tiktok"]
 }
 
 enum FunnelStage {
   top
   bottom
-}
 
-enum TiktokTopEventType {
-  video_view
-  like
-  share
-  comment
-}
-
-enum TiktokBottomEventType {
-  profile_visit
-  purchase
-  follow
+  @@schema("tiktok")
 }
 
 enum DeviceType {
   Android
   iOS
   Desktop
+
+  @@schema("tiktok")
 }
 
 model TiktokUser {
@@ -39,15 +32,17 @@ model TiktokUser {
   followers  Int
 
   events     TiktokEvent[]
+
+  @@schema("tiktok")
 }
 
 model TiktokEvent {
   id            String   @id @default(uuid())
   eventId       String   @unique
   timestamp     DateTime
-  source        String   // Always "tiktok"
+  source        String
   funnelStage   FunnelStage
-  eventType     String   // Can use string union validation at app level if combining enums
+  eventType     String
 
   userId        String
   user          TiktokUser @relation(fields: [userId], references: [id])
@@ -57,6 +52,8 @@ model TiktokEvent {
 
   engagementBottomId  String? @unique
   engagementBottom    TiktokEngagementBottom? @relation(fields: [engagementBottomId], references: [id])
+
+  @@schema("tiktok")
 }
 
 model TiktokEngagementTop {
@@ -69,6 +66,8 @@ model TiktokEngagementTop {
   videoId             String
 
   event               TiktokEvent?
+
+  @@schema("tiktok")
 }
 
 model TiktokEngagementBottom {
@@ -80,4 +79,6 @@ model TiktokEngagementBottom {
   purchaseAmount      String?
 
   event               TiktokEvent?
+
+  @@schema("tiktok")
 }

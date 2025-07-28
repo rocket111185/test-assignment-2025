@@ -58,7 +58,7 @@ services:
       context: ./fb-collector
     environment:
       NATS_URL: "${NATS_URL}"
-      DATABASE_URL: "${DATABASE_URL}"
+      DATABASE_URL: "${DATABASE_URL}?schema=facebook"
     depends_on:
       gateway:
         condition: service_healthy
@@ -72,7 +72,7 @@ services:
       context: ./ttk-collector
     environment:
       NATS_URL: "${NATS_URL}"
-      DATABASE_URL: "${DATABASE_URL}"
+      DATABASE_URL: "${DATABASE_URL}?schema=tiktok"
     depends_on:
       gateway:
         condition: service_healthy
