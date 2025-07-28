@@ -1,7 +1,18 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { NatsConnection, StringCodec, connect, AckPolicy, Consumer } from 'nats';
-import { PrismaClient } from '../prisma/client';
-import { TiktokEventSchema, TiktokEvent } from './validator';
+import { PrismaClient, TiktokEvent as PrismaTiktokEvent } from '../prisma/client';
+import {
+  TiktokEventSchema,
+  TiktokEvent,
+  TiktokEngagementTop,
+  TiktokEngagementBottom
+} from './validator';
+
+// We don't want to set ID explicitly
+// Besides that, it must be OK to specify time in string
+type DbTiktokEvent = Omit<PrismaTiktokEvent, 'id' | 'timestamp'> & {
+  timestamp: string
+};
 
 @Injectable()
 export class AppService implements OnModuleInit, OnModuleDestroy {
@@ -31,6 +42,7 @@ export class AppService implements OnModuleInit, OnModuleDestroy {
   async initializePrisma() {
     this.prisma = new PrismaClient();
     await this.prisma.$connect();
+    console.log('Connected to the database');
   }
 
   async processEvent(event: TiktokEvent) {
@@ -47,22 +59,35 @@ export class AppService implements OnModuleInit, OnModuleDestroy {
         userObject = await tx.tiktokUser.create({ data: user });
       }
 
-      const engagementObject = await tx.tiktokEngagement.create({
-        data: engagement
-      });
+      const eventInput: DbTiktokEvent = {
+        ...eventData,
+        userId: userObject.id,
+        engagementTopId: null,
+        engagementBottomId: null
+      };
 
-      await tx.tiktokEvent.create({
-        data: {
-          ...eventData,
-          userId: user.userId,
-          engagementId: engagementObject.id
-        }
-      });
+      if (eventData.funnelStage === 'top') {
+        const engagementObject = await tx.tiktokEngagementTop.create({
+          data: engagement as TiktokEngagementTop
+        });
+
+        eventInput.engagementTopId = engagementObject.id;
+      } else if (eventData.funnelStage === 'bottom') {
+        const engagementObject = await tx.tiktokEngagementBottom.create({
+          data: engagement as TiktokEngagementBottom
+        });
+
+        eventInput.engagementBottomId = engagementObject.id;
+      }
+
+      await tx.tiktokEvent.create({ data: eventInput });
     });
   }
 
   async onModuleInit() {
     await this.initializeNats();
+    await this.initializePrisma();
+
     const codec = StringCodec();
     const messages = await this.consumer.consume();
 
@@ -71,9 +96,8 @@ export class AppService implements OnModuleInit, OnModuleDestroy {
         const decoded = JSON.parse(codec.decode(msg.data));
         const validated = await TiktokEventSchema.safeParseAsync(decoded);
 
-        if (validated.success) {
-          const data: TiktokEvent = validated.data;
-          console.log('Received an object, source:', data.source);
+        if (validated.success && validated.data) {
+          await this.processEvent(validated.data);
         } else {
           console.error('This data piece was malfunctioned, source:', decoded.source);
         }
@@ -89,6 +113,8 @@ export class AppService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy() {
     await this.prisma.$disconnect();
+    console.log('Disconnected from the database');
+
     await this.connection.drain();
     console.log('Disconnected from NATS JetStream');
   }

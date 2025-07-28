@@ -5,7 +5,9 @@ COPY package*.json .
 RUN npm ci
 
 COPY schema.prisma .
-RUN npm run migrate
+RUN npm run prisma:generate
 
 COPY . .
-CMD ["npm", "start"]
+
+RUN chmod +x /app/entrypoint.sh
+ENTRYPOINT ["/app/entrypoint.sh"]

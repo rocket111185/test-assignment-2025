@@ -20,12 +20,16 @@ const TiktokEngagementTopSchema = z.object({
   videoId: z.string(),
 });
 
+export type TiktokEngagementTop = z.infer<typeof TiktokEngagementTopSchema>;
+
 const TiktokEngagementBottomSchema = z.object({
   actionTime: z.string(),
   profileId: z.string().nullable(),
   purchasedItem: z.string().nullable(),
   purchaseAmount: z.string().nullable(),
 });
+
+export type TiktokEngagementBottom = z.infer<typeof TiktokEngagementBottomSchema>;
 
 const TiktokEngagementSchema = z.union([
   TiktokEngagementTopSchema,

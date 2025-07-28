@@ -52,22 +52,29 @@ model TiktokEvent {
   userId        String
   user          TiktokUser @relation(fields: [userId], references: [id])
 
-  engagementId  String? @unique
-  engagement    TiktokEngagement? @relation(fields: [engagementId], references: [id])
+  engagementTopId  String? @unique
+  engagementTop    TiktokEngagementTop? @relation(fields: [engagementTopId], references: [id])
+
+  engagementBottomId  String? @unique
+  engagementBottom    TiktokEngagementBottom? @relation(fields: [engagementBottomId], references: [id])
 }
 
-model TiktokEngagement {
+model TiktokEngagementTop {
   id                  String   @id @default(uuid())
 
-  // For Top
-  watchTime           Int?
-  percentageWatched   Float?
-  device              DeviceType?
-  country             String?
-  videoId             String?
+  watchTime           Int
+  percentageWatched   Float
+  device              DeviceType
+  country             String
+  videoId             String
 
-  // For Bottom
-  actionTime          DateTime?
+  event               TiktokEvent?
+}
+
+model TiktokEngagementBottom {
+  id                  String   @id @default(uuid())
+
+  actionTime          DateTime
   profileId           String?
   purchasedItem       String?
   purchaseAmount      String?
