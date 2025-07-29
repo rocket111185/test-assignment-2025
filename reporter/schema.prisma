@@ -36,14 +36,6 @@ enum BrowserType {
   Safari
 }
 
-model FacebookUserLocation {
-  id      String @id @default(uuid())
-  country String
-  city    String
-
-  users   FacebookUser[]
-}
-
 model FacebookUser {
   id         String   @id @default(uuid())
   userId     String   @unique
@@ -54,8 +46,8 @@ model FacebookUser {
   // inability to use "non-binary" as enum value
   gender     String
 
-  locationId String
-  location   FacebookUserLocation @relation(fields: [locationId], references: [id])
+  country    String
+  city       String
 
   events     FacebookEvent[]
 }
@@ -96,7 +88,7 @@ model FacebookEngagementBottom {
   clickPosition       ClickPosition
   device              FacebookDeviceType
   browser             BrowserType
-  purchaseAmount      String?
+  purchaseAmount      Float?
 
   event               FacebookEvent?
 }
@@ -152,7 +144,7 @@ model TiktokEngagementBottom {
   actionTime          DateTime
   profileId           String?
   purchasedItem       String?
-  purchaseAmount      String?
+  purchaseAmount      Float?
 
   event               TiktokEvent?
 }

@@ -35,16 +35,15 @@ export class EventHandlerService implements OnModuleInit, OnModuleDestroy {
         console.log('Disconnected from NATS JetStream');
     }
 
-    async publish(topic: string, message: any) {
-        const data = this.codec.encode(JSON.stringify(message));
-        const result = await this.jetStream.publish(topic, data);
-        console.log({ result });
+    async publish(event: Event) {
+        const data = this.codec.encode(JSON.stringify(event));
+        await this.jetStream.publish(event.source, data);
     }
 
     async processEvent(body: Event[]) {
         for (let i = 0; i < 10; i++) {
             const event = body[i];
-            await this.publish(event.source, event);
+            await this.publish(event);
         }
 
         console.log('Processed a batch of events');

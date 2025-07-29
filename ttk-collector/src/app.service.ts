@@ -75,8 +75,13 @@ export class AppService implements OnModuleInit, OnModuleDestroy {
 
         eventInput.engagementTopId = engagementObject.id;
       } else if (eventData.funnelStage === 'bottom') {
+        const { purchaseAmount, ...engagementInput } = engagement as TiktokEngagementBottom;
+
         const engagementObject = await tx.tiktokEngagementBottom.create({
-          data: engagement as TiktokEngagementBottom
+          data: {
+            ...engagementInput,
+            ...(purchaseAmount && { purchaseAmount: parseFloat(purchaseAmount) })
+          }
         });
 
         eventInput.engagementBottomId = engagementObject.id;

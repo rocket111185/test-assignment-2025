@@ -66,20 +66,10 @@ export class AppService implements OnModuleInit, OnModuleDestroy {
       if (!userObject) {
         const { location, ...userInput } = user;
 
-        let userLocation = await tx.facebookUserLocation.findFirst({
-          where: location
-        });
-
-        if (!userLocation) {
-          userLocation = await tx.facebookUserLocation.create({
-            data: location
-          });
-        }
-
         userObject = await tx.facebookUser.create({
           data: {
             ...userInput,
-            locationId: userLocation.id
+            ...location,
           }
         });
       }
@@ -98,8 +88,13 @@ export class AppService implements OnModuleInit, OnModuleDestroy {
 
         eventInput.engagementTopId = engagementObject.id;
       } else if (eventData.funnelStage === 'bottom') {
+        const { purchaseAmount, ...engagementInput } = engagement as FacebookEngagementBottom;
+
         const engagementObject = await tx.facebookEngagementBottom.create({
-          data: engagement as FacebookEngagementBottom
+          data: {
+            ...engagementInput,
+            ...(purchaseAmount && { purchaseAmount: parseFloat(purchaseAmount) })
+          }
         });
 
         eventInput.engagementBottomId = engagementObject.id;

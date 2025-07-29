@@ -64,7 +64,7 @@ model TiktokEngagementBottom {
   actionTime          DateTime
   profileId           String?
   purchasedItem       String?
-  purchaseAmount      String?
+  purchaseAmount      Float?
 
   event               TiktokEvent?
 }

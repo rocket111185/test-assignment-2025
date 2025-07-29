@@ -1,6 +1,6 @@
 services:
   nats:
-    image: nats:linux
+    image: nats:alpine
     platform: linux/arm64/v8
     command: -js
     expose:
@@ -10,24 +10,31 @@ services:
       - ./storage/jetstream:/tmp/nats/jetstream
     networks:
       - general
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "4222"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
 
   gateway:
     build:
       context: ./gateway
-    # deploy:
-    #   mode: replicated
-    #   replicas: 4
+    deploy:
+      mode: replicated
+      replicas: 4
     expose:
-      - "3000"
+      - "${GATEWAY_PORT}"
     environment:
-      PORT: "3000"
+      PORT: "${GATEWAY_PORT}"
       NATS_URL: "${NATS_URL}"
     depends_on:
-      - nats
+      nats:
+        condition: service_healthy
     networks:
       - general
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "nc", "-z", "localhost", "${GATEWAY_PORT}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -57,10 +64,10 @@ services:
     build:
       context: ./reporter
     environment:
-      PORT: "3030"
+      PORT: "${REPORTER_PORT}"
       DATABASE_URL: "${DATABASE_URL}"
     ports:
-      - "3030:3030"
+      - "${REPORTER_PORT}:${REPORTER_PORT}"
     depends_on:
       gateway:
         condition: service_healthy
@@ -69,7 +76,7 @@ services:
     networks:
       - general
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3030/health"]
+      test: ["CMD", "nc", "-z", "localhost", "${REPORTER_PORT}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -103,7 +110,7 @@ services:
     image: andriiuni/events
     platform: linux/arm64/v8
     environment:
-      EVENT_ENDPOINT: "http://gateway:3000/events"
+      EVENT_ENDPOINT: "http://gateway:${GATEWAY_PORT}/events"
     depends_on:
       - fb-collector
       - ttk-collector

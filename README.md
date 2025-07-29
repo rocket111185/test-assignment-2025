@@ -18,6 +18,8 @@ Author: Dmytro Rekechynskyi
      ```sh
      docker run --privileged --rm tonistiigi/binfmt --install all
      ```
+     IMPORTANT NOTE! Sometimes running this command once may be not enough. If Docker
+     Compose does not work, run this command again.
 3. Create an `.env` file with proper values. Example may be seen in `.development.env`
 4. Run this command to build and launch this ecosystem:
    ```sh
@@ -25,3 +27,15 @@ Author: Dmytro Rekechynskyi
    ```
 
 That's it!
+
+## Reports API
+
+Access from host machine to Reports API may be done via request to `localhost:3030`
+(since this port is exposed to the host).
+
+This API contains 3 endpoints:
+* `GET /reports/events/`
+* `GET /reports/revenue`
+* `GET /reports/demographics`
+
+For more information, please check the task requirements document.
