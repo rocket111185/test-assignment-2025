@@ -14,18 +14,6 @@ type GetRevenueResult = {
   purchaseAmount: number | null;
 };
 
-type GroupResult<Field extends string> = {
-  _count: {
-    [K in Field]: number
-  };
-} & {
-  [K in Field]: string
-};
-
-type TransformedResult = {
-  [key: string]: number
-};
-
 @Injectable()
 export class ReportsService implements OnModuleInit, OnModuleDestroy {
   private prisma: PrismaClient;
@@ -39,19 +27,6 @@ export class ReportsService implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy() {
     await this.prisma.$disconnect();
     console.log('Disconnected from the database');
-  }
-
-  private transformEventResults(groupResults: GroupResult<'eventType'>[]): TransformedResult {
-    const result: TransformedResult = {};
-
-    for (const groupInfo of groupResults) {
-      const count = groupInfo._count.eventType;
-      const { eventType } = groupInfo;
-
-      result[eventType] = count;
-    }
-
-    return result;
   }
 
   async getEvents(filters: GetEventsParams): Promise<GetEventsResult> {
@@ -74,24 +49,26 @@ export class ReportsService implements OnModuleInit, OnModuleDestroy {
       const facebookResults = await this.prisma.facebookEvent.groupBy({
         where,
         by: ['eventType'],
-        _count: {
-          eventType: true
-        }
+        _count: true
       });
 
-      result.facebook = this.transformEventResults(facebookResults);
+      result.facebook = facebookResults.reduce((acc, value) => ({
+        ...acc,
+        [value.eventType]: value._count
+      }), {});
     }
 
     if (!source || source !== Source.facebook) {
       const tiktokResults = await this.prisma.tiktokEvent.groupBy({
         where,
         by: ['eventType'],
-        _count: {
-          eventType: true
-        }
+        _count: true
       });
 
-      result.tiktok = this.transformEventResults(tiktokResults);
+      result.tiktok = tiktokResults.reduce((acc, value) => ({
+        ...acc,
+        [value.eventType]: value._count
+      }), {});
     }
 
     return result;
@@ -139,7 +116,91 @@ export class ReportsService implements OnModuleInit, OnModuleDestroy {
   async getDemographics(filters: GetDemographicsParams): Promise<any> {
     const { from, to, source } = filters;
 
-    const result: any = {};
-    return result;
+    const where = {
+      events: {
+        some: {
+          timestamp: {
+            gte: new Date(from),
+            lte: new Date(to),
+          }
+        }
+      }
+    };
+
+    if (source === Source.facebook) {
+      const [gender, country, age] = await Promise.all([
+        this.prisma.facebookUser.groupBy({
+          where,
+          by: ['gender'],
+          _count: true
+        }),
+
+        this.prisma.facebookUser.groupBy({
+          where,
+          by: ['country'],
+          _count: true
+        }),
+
+        this.prisma.facebookUser.groupBy({
+          where,
+          by: ['age'],
+          _count: true
+        }),
+      ]);
+
+      return {
+        gender: gender.reduce((acc, value) => ({
+          ...acc,
+          [value.gender]: value._count
+        }), {}),
+
+        country: country.reduce((acc, value) => ({
+          ...acc,
+          [value.country]: value._count
+        }), {}),
+
+        age: age.reduce((acc, value) => ({
+          ...acc,
+          [value.age]: value._count
+        }), {}),
+      };
+    } else if (source === Source.tiktok) {
+      const { _min, _max } = await this.prisma.tiktokUser.aggregate({
+        _min: { followers: true },
+        _max: { followers: true },
+      });
+
+      const min = _min.followers ?? 0;
+      const max = _max.followers ?? 0;
+      const bucketCount = 10;
+      const step = Math.ceil((max - min + 1) / bucketCount);
+
+      // Dynamic breaking into chunks
+      const ranges = Array.from({ length: bucketCount }, (_, i) => {
+        const from = min + i * step;
+        const to = from + step - 1;
+        return { label: `${from}-${to}`, from, to };
+      });
+
+      const counts = await Promise.all(
+        ranges.map(async ({ from, to, label }) => {
+          const count = await this.prisma.tiktokUser.count({
+            where: {
+              followers: { gte: from, lte: to },
+            },
+          });
+          return { range: label, count };
+        })
+      );
+
+      return {
+        followers: counts.reduce((acc, value) => ({
+          ...acc,
+          [value.range]: value.count
+        }), {}),
+      };
+    }
+
+    return {};
   }
 }
