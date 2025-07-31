@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+  output = "./prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FunnelStage {
+  top
+  bottom
+}
+
+enum Referrer {
+  newsfeed
+  marketplace
+  groups
+}
+
+enum ClickPosition {
+  top_left
+  bottom_right
+  center
+}
+
+enum FacebookDeviceType {
+  mobile
+  desktop
+}
+
+enum BrowserType {
+  Chrome
+  Firefox
+  Safari
+}
+
+model FacebookUser {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  name       String
+  age        Int
+
+  // Had to use String for gender instead of enum due to
+  // inability to use "non-binary" as enum value
+  gender     String
+
+  country    String
+  city       String
+
+  events     FacebookEvent[]
+}
+
+model FacebookEvent {
+  id            String   @id @default(uuid())
+  eventId       String   @unique
+  timestamp     DateTime
+  source        String
+  funnelStage   FunnelStage
+  eventType     String
+
+  userId        String
+  user          FacebookUser @relation(fields: [userId], references: [id])
+
+  engagementTopId  String? @unique
+  engagementTop    FacebookEngagementTop? @relation(fields: [engagementTopId], references: [id])
+
+  engagementBottomId  String? @unique
+  engagementBottom    FacebookEngagementBottom? @relation(fields: [engagementBottomId], references: [id])
+}
+
+model FacebookEngagementTop {
+  id                  String   @id @default(uuid())
+
+  actionTime          DateTime
+  referrer            Referrer
+  videoId             String?
+
+  event               FacebookEvent?
+}
+
+model FacebookEngagementBottom {
+  id                  String   @id @default(uuid())
+
+  adId                String
+  campaignId          String
+  clickPosition       ClickPosition
+  device              FacebookDeviceType
+  browser             BrowserType
+  purchaseAmount      Float?
+
+  event               FacebookEvent?
+}
+
+enum TiktokDeviceType {
+  Android
+  iOS
+  Desktop
+}
+
+model TiktokUser {
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  username   String
+  followers  Int
+
+  events     TiktokEvent[]
+}
+
+model TiktokEvent {
+  id            String   @id @default(uuid())
+  eventId       String   @unique
+  timestamp     DateTime
+  source        String
+  funnelStage   FunnelStage
+  eventType     String
+
+  userId        String
+  user          TiktokUser @relation(fields: [userId], references: [id])
+
+  engagementTopId  String? @unique
+  engagementTop    TiktokEngagementTop? @relation(fields: [engagementTopId], references: [id])
+
+  engagementBottomId  String? @unique
+  engagementBottom    TiktokEngagementBottom? @relation(fields: [engagementBottomId], references: [id])
+}
+
+model TiktokEngagementTop {
+  id                  String   @id @default(uuid())
+
+  watchTime           Int
+  percentageWatched   Float
+  device              TiktokDeviceType
+  country             String
+  videoId             String
+
+  event               TiktokEvent?
+}
+
+model TiktokEngagementBottom {
+  id                  String   @id @default(uuid())
+
+  actionTime          DateTime
+  profileId           String?
+  purchasedItem       String?
+  purchaseAmount      Float?
+
+  event               TiktokEvent?
+}

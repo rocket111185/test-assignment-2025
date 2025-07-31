@@ -1,0 +1,121 @@
+services:
+  nats:
+    image: nats:alpine
+    platform: linux/arm64/v8
+    command: -js
+    expose:
+      - "4222"
+      - "8222"
+    volumes:
+      - ./storage/jetstream:/tmp/nats/jetstream
+    networks:
+      - general
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "4222"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  gateway:
+    build:
+      context: ./gateway
+    deploy:
+      mode: replicated
+      replicas: 4
+    expose:
+      - "${GATEWAY_PORT}"
+    environment:
+      PORT: "${GATEWAY_PORT}"
+      NATS_URL: "${NATS_URL}"
+    depends_on:
+      nats:
+        condition: service_healthy
+    networks:
+      - general
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "${GATEWAY_PORT}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  postgres:
+    image: "postgres:${POSTGRES_VERSION}"
+    platform: linux/arm64/v8
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB}"
+    expose:
+      - "5432"
+    volumes:
+      - ./storage/postgresql:/var/lib/postgresql/data
+    networks:
+      - general
+    healthcheck:
+      test: "pg_isready -d ${POSTGRES_DB} -U ${POSTGRES_USER}"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  reporter:
+    build:
+      context: ./reporter
+    environment:
+      PORT: "${REPORTER_PORT}"
+      DATABASE_URL: "${DATABASE_URL}"
+    ports:
+      - "${REPORTER_PORT}:${REPORTER_PORT}"
+    depends_on:
+      gateway:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - general
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "${REPORTER_PORT}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  fb-collector:
+    build:
+      context: ./fb-collector
+    environment:
+      NATS_URL: "${NATS_URL}"
+      DATABASE_URL: "${DATABASE_URL}"
+    depends_on:
+      reporter:
+        condition: service_healthy
+    networks:
+      - general
+
+  ttk-collector:
+    build:
+      context: ./ttk-collector
+    environment:
+      NATS_URL: "${NATS_URL}"
+      DATABASE_URL: "${DATABASE_URL}"
+    depends_on:
+      reporter:
+        condition: service_healthy
+    networks:
+      - general
+
+  publisher:
+    image: andriiuni/events
+    platform: linux/arm64/v8
+    environment:
+      EVENT_ENDPOINT: "http://gateway:${GATEWAY_PORT}/events"
+    depends_on:
+      - fb-collector
+      - ttk-collector
+    networks:
+      - general
+
+networks:
+  general:
